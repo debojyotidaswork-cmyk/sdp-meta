@@ -83,6 +83,7 @@ class BronzeDataflowSpec:
     # :attr:`DataflowSpecUtils.additional_bronze_df_columns`.
     rowFilter: str
     quarantineRowFilter: str
+    targetType: str  # 'streaming_table' or 'materialized_view'
 
 
 @dataclass
@@ -129,6 +130,7 @@ class SilverDataflowSpec:
     # :meth:`DataflowPipeline._get_quarantine_row_filter` helpers.
     rowFilter: str
     quarantineRowFilter: str
+    targetType: str  # 'streaming_table' or 'materialized_view'
 
 
 @dataclass
@@ -324,6 +326,7 @@ class DataflowSpecUtils:
         # legacy dataflowspec rows.
         "rowFilter",
         "quarantineRowFilter",
+        "targetType",
     ]
     additional_silver_df_columns = [
         "dataQualityExpectations",
@@ -342,6 +345,7 @@ class DataflowSpecUtils:
         # UC row-level security (issue #303). See bronze entry above.
         "rowFilter",
         "quarantineRowFilter",
+        "targetType",
     ]
     additional_cdc_apply_changes_columns = ["flow_name", "once"]
     apply_changes_from_snapshot_api_attributes = [

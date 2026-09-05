@@ -190,6 +190,10 @@ class DataflowPipeline:
             return None
         return getattr(self.dataflowSpec, "quarantineRowFilter", None)
 
+    def is_materialized_view(self):
+        """Check if the target should be a materialized view instead of a streaming table."""
+        return getattr(self.dataflowSpec, 'targetType', 'streaming_table') == 'materialized_view'
+
     def is_create_view(self):
         """Determine if a view should be created based on source details and snapshot configuration.
 
@@ -478,7 +482,11 @@ class DataflowPipeline:
         if bronze_dataflow_spec.sourceFormat == "cloudFiles":
             input_df = pipeline_reader.read_dlt_cloud_files()
         elif bronze_dataflow_spec.sourceFormat == "delta" or bronze_dataflow_spec.sourceFormat == "snapshot":
-            input_df = pipeline_reader.read_dlt_delta()
+            # input_df = pipeline_reader.read_dlt_delta()
+            if self.is_materialized_view() and bronze_dataflow_spec.sourceFormat == "delta":
+                input_df = pipeline_reader.read_dlt_delta_batch()
+            else:
+                input_df = pipeline_reader.read_dlt_delta()
         elif bronze_dataflow_spec.sourceFormat == "eventhub" or bronze_dataflow_spec.sourceFormat == "kafka":
             input_df = pipeline_reader.read_kafka()
         else:
@@ -537,8 +545,10 @@ class DataflowPipeline:
         source_table = source_details["table"]
         select_exp = silver_dataflow_spec.selectExp
         where_clause = silver_dataflow_spec.whereClause
+        use_batch = silver_dataflow_spec.sourceFormat == "snapshot" or self.is_materialized_view()
         if reader_config_opts:
-            if silver_dataflow_spec.sourceFormat == "snapshot":
+            # if silver_dataflow_spec.sourceFormat == "snapshot":
+            if use_batch:
                 bronze_df = self.spark.read.options(**reader_config_opts).table(
                     f"{source_cl_name}{source_database}.{source_table}"
                 ) if self.uc_enabled else self.spark.read.options(
@@ -557,7 +567,8 @@ class DataflowPipeline:
                     format="delta"
                 )
         else:
-            if silver_dataflow_spec.sourceFormat == "snapshot":
+            # if silver_dataflow_spec.sourceFormat == "snapshot":
+            if use_batch:
                 bronze_df = self.spark.read.table(
                     f"{source_cl_name}{source_database}.{source_table}"
                 ) if self.uc_enabled else self.spark.read.load(
@@ -584,6 +595,8 @@ class DataflowPipeline:
         here: in legacy publishing mode it falls back to a catalog lookup and
         raises TABLE_OR_VIEW_NOT_FOUND instead of finding the LIVE-schema view.
         """
+        if self.is_materialized_view():
+            return dp.read(self.view_name)
         return dp.read_stream(self.view_name)
 
     def apply_changes_from_snapshot(self):

@@ -1305,6 +1305,7 @@ class OnboardDataflowspec:
             # and silently dropped on non-UC pipelines.
             "rowFilter",
             "quarantineRowFilter",
+            "targetType",
         ]
         data_flow_spec_schema = StructType(
             [
@@ -1354,6 +1355,7 @@ class OnboardDataflowspec:
                 ),
                 StructField("rowFilter", StringType(), True),
                 StructField("quarantineRowFilter", StringType(), True),
+                StructField("targetType", StringType(), True),
             ]
         )
         data = []
@@ -1530,6 +1532,12 @@ class OnboardDataflowspec:
                 )
                 else None
             )
+            bronze_target_type = "streaming_table"
+            if (
+                "bronze_target_type" in onboarding_row
+                and onboarding_row["bronze_target_type"]
+            ):
+                bronze_target_type = onboarding_row["bronze_target_type"]
             bronze_row = (
                 bronze_data_flow_spec_id,
                 bronze_data_flow_spec_group,
@@ -1555,6 +1563,7 @@ class OnboardDataflowspec:
                 cdc_apply_changes_flows_schemas,
                 bronze_row_filter,
                 bronze_quarantine_row_filter,
+                bronze_target_type,
             )
             data.append(bronze_row)
             # logger.info(bronze_parition_columns)
@@ -2276,6 +2285,7 @@ class OnboardDataflowspec:
             # and silently dropped on non-UC pipelines.
             "rowFilter",
             "quarantineRowFilter",
+            "targetType",
         ]
         data_flow_spec_schema = StructType(
             [
@@ -2312,6 +2322,7 @@ class OnboardDataflowspec:
                 StructField("cdcApplyChangesFlows", StringType(), True),
                 StructField("rowFilter", StringType(), True),
                 StructField("quarantineRowFilter", StringType(), True),
+                StructField("targetType", StringType(), True),
             ]
         )
         data = []
@@ -2553,6 +2564,14 @@ class OnboardDataflowspec:
                 )
                 else None
             )
+
+            silver_target_type = "streaming_table"
+            if (
+                "silver_target_type" in onboarding_row
+                and onboarding_row["silver_target_type"]
+            ):
+                silver_target_type = onboarding_row["silver_target_type"]
+
             silver_row = (
                 silver_data_flow_spec_id,
                 silver_data_flow_spec_group,
@@ -2577,6 +2596,7 @@ class OnboardDataflowspec:
                 silver_cdc_apply_changes_flows,
                 silver_row_filter,
                 silver_quarantine_row_filter,
+                silver_target_type,
             )
             data.append(silver_row)
             logger.info(f"silver_data ==== {data}")
